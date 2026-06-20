@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPIROB — Robotics Project</title>
+<style>
+  :root{
+    --bg: #0B1220;
+    --panel: #111A2B;
+    --line: #233045;
+    --accent: #FF6B35;
+    --accent-dim: #B14A23;
+    --text: #E8ECF1;
+    --muted: #7C8AA0;
+    --mono-bg: #0E1626;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter', -apple-system, sans-serif;
+    line-height:1.6;
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 48px 48px;
+    background-attachment: fixed;
+  }
+  a{color:var(--accent); text-decoration:none;}
+  .wrap{max-width:1080px; margin:0 auto; padding:0 24px;}
+
+  /* Nav */
+  nav{
+    position:sticky; top:0; z-index:50;
+    background:rgba(11,18,32,0.92);
+    backdrop-filter: blur(6px);
+    border-bottom:1px solid var(--line);
+  }
+  nav .wrap{display:flex; align-items:center; justify-content:space-between; height:64px;}
+  .logo{font-family:'JetBrains Mono', monospace; font-weight:700; letter-spacing:2px; font-size:18px;}
+  .logo span{color:var(--accent);}
+  nav ul{display:flex; gap:28px; list-style:none;}
+  nav ul li a{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px; letter-spacing:1px; text-transform:uppercase;
+    color:var(--muted);
+  }
+  nav ul li a:hover{color:var(--text);}
+
+  /* Hero */
+  .hero{padding:120px 0 100px; position:relative;}
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    color:var(--accent); font-size:13px; letter-spacing:3px;
+    text-transform:uppercase; margin-bottom:18px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .eyebrow::before{content:""; width:8px; height:8px; background:var(--accent); display:inline-block; box-shadow:0 0 8px var(--accent);}
+  h1{
+    font-family:'JetBrains Mono', monospace;
+    font-size:clamp(48px, 9vw, 96px);
+    font-weight:700; letter-spacing:-2px; line-height:0.95;
+    margin-bottom:24px;
+  }
+  .tagline{font-size:20px; color:var(--muted); max-width:560px; margin-bottom:36px;}
+  .cta-row{display:flex; gap:16px; flex-wrap:wrap;}
+  .btn{
+    font-family:'JetBrains Mono', monospace; font-size:13px; letter-spacing:1px;
+    text-transform:uppercase; padding:14px 28px; border:1px solid var(--accent);
+    color:var(--accent); border-radius:2px; transition:all .2s;
+  }
+  .btn:hover{background:var(--accent); color:var(--bg);}
+  .btn.ghost{border-color:var(--line); color:var(--muted);}
+  .btn.ghost:hover{border-color:var(--muted); color:var(--text); background:none;}
+
+  /* Schematic SVG signature element */
+  .schematic{margin-top:60px; border:1px solid var(--line); background:var(--mono-bg); border-radius:2px; padding:20px; position:relative;}
+  .schematic-label{
+    position:absolute; top:-11px; left:20px; background:var(--bg); padding:0 8px;
+    font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--muted); letter-spacing:1px;
+  }
+  .schematic svg{width:100%; height:auto; display:block;}
+  .joint{fill:var(--mono-bg); stroke:var(--accent); stroke-width:2; cursor:pointer;}
+  .joint:hover{fill:var(--accent);}
+  .spine-line{stroke:var(--muted); stroke-width:2; fill:none;}
+  .joint-label{font-family:'JetBrains Mono', monospace; font-size:10px; fill:var(--muted);}
+
+  /* Sections */
+  section{padding:90px 0; border-bottom:1px solid var(--line);}
+  .section-head{display:flex; align-items:baseline; gap:16px; margin-bottom:48px;}
+  .tag-num{font-family:'JetBrains Mono', monospace; color:var(--accent-dim); font-size:14px;}
+  h2{font-family:'JetBrains Mono', monospace; font-size:32px; letter-spacing:-1px;}
+  .lead{color:var(--muted); max-width:640px; margin-bottom:40px;}
+
+  /* About grid */
+  .about-grid{display:grid; grid-template-columns: 1.3fr 1fr; gap:48px;}
+  .feature-list{list-style:none;}
+  .feature-list li{
+    padding:16px 0; border-bottom:1px solid var(--line);
+    display:flex; gap:16px; align-items:flex-start;
+  }
+  .feature-list li:last-child{border-bottom:none;}
+  .feature-list .f-icon{
+    font-family:'JetBrains Mono', monospace; color:var(--accent); font-size:13px; flex-shrink:0; width:24px;
+  }
+
+  /* How it works - tabs of subsystems */
+  .subsystem-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:24px;}
+  .card{
+    background:var(--panel); border:1px solid var(--line); padding:28px; border-radius:2px;
+    transition:border-color .2s;
+  }
+  .card:hover{border-color:var(--accent-dim);}
+  .card h3{
+    font-family:'JetBrains Mono', monospace; font-size:15px; letter-spacing:1px;
+    text-transform:uppercase; color:var(--accent); margin-bottom:14px;
+  }
+  .card p{color:var(--muted); font-size:14px;}
+  .card ul{margin-top:14px; padding-left:18px; color:var(--text); font-size:14px;}
+  .card ul li{margin-bottom:6px;}
+
+  /* Specs table */
+  table{width:100%; border-collapse:collapse; font-family:'JetBrains Mono', monospace; font-size:14px;}
+  table tr{border-bottom:1px solid var(--line);}
+  table td{padding:16px 12px;}
+  table td:first-child{color:var(--muted); width:240px; text-transform:uppercase; font-size:12px; letter-spacing:1px;}
+  table td:last-child{color:var(--text);}
+  table tr:hover{background:rgba(255,107,53,0.04);}
+
+  /* Timeline */
+  .timeline{position:relative; padding-left:32px; border-left:1px solid var(--line);}
+  .t-item{position:relative; margin-bottom:36px;}
+  .t-item::before{
+    content:""; position:absolute; left:-37px; top:4px;
+    width:11px; height:11px; border-radius:50%; background:var(--bg);
+    border:2px solid var(--accent);
+  }
+  .t-date{font-family:'JetBrains Mono', monospace; color:var(--accent); font-size:12px; letter-spacing:1px; margin-bottom:6px;}
+  .t-title{font-weight:600; margin-bottom:4px;}
+  .t-desc{color:var(--muted); font-size:14px;}
+
+  /* Gallery placeholder */
+  .gallery-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:16px;}
+  .gallery-slot{
+    aspect-ratio:4/3; border:1px dashed var(--line); border-radius:2px;
+    display:flex; align-items:center; justify-content:center; flex-direction:column; gap:8px;
+    color:var(--muted); font-family:'JetBrains Mono', monospace; font-size:12px; text-align:center; padding:16px;
+  }
+
+  /* Team */
+  .team-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:24px;}
+  .team-card{border:1px solid var(--line); padding:24px; border-radius:2px;}
+  .team-card .role{color:var(--accent); font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; margin-bottom:8px;}
+  .team-card .name{font-size:18px; font-weight:600;}
+
+  /* Resources */
+  .resource-row{display:flex; gap:16px; flex-wrap:wrap;}
+  .resource-chip{
+    border:1px solid var(--line); padding:12px 20px; border-radius:2px; font-family:'JetBrains Mono', monospace;
+    font-size:13px; display:flex; align-items:center; gap:10px; color:var(--text);
+  }
+  .resource-chip:hover{border-color:var(--accent);}
+
+  footer{padding:48px 0; text-align:center; color:var(--muted); font-family:'JetBrains Mono', monospace; font-size:12px;}
+
+  @media (max-width:760px){
+    .about-grid, .subsystem-grid, .gallery-grid{grid-template-columns:1fr;}
+    nav ul{display:none;}
+  }
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto;}
+    *{transition:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <div class="logo">SPI<span>ROB</span></div>
+    <ul>
+      <li><a href="#about">About</a></li>
+      <li><a href="#how">System</a></li>
+      <li><a href="#specs">Specs</a></li>
+      <li><a href="#timeline">Timeline</a></li>
+      <li><a href="#gallery">Gallery</a></li>
+      <li><a href="#team">Team</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Robotics / Hardware Project</div>
+    <h1>SPIROB</h1>
+    <p class="tagline">
+      A soft, cable-driven robot shaped like a logarithmic spiral — the same curve found in nature in things like octopus arms, elephant trunks, and chameleon tails. It morphologically replicates the logarithmic spiral pattern observed in natural appendages such as octopus arms and elephant trunks, which gives it a flexible, life-like curling motion. 
+    <div class="cta-row">
+      <a href="#about" class="btn">View Project</a>
+      <a href="#contact" class="btn ghost">Get in Touch</a>
+    </div>
+<div class="schematic">
+  <span class="schematic-label">FIG. 01 — SPIROB</span>
+  <img src="spirob-photo.jpg" alt="Photo of the SPIROB robot" style="width:100%; height:auto; display:block; border-radius:2px;">
+</div>
+    
+  </div>
+</header>
+
+<section id="about">
+  <div class="wrap">
+    <div class="section-head"><span class="tag-num">01</span><h2>About the Project</h2></div>
+    <p class="lead">
+      Most robot grippers struggle with one thing: handling objects of very different sizes and shapes with the same gripper. A gripper built for small objects usually fails on large ones, and vice versa. SPIROB solves this by being able to grip things ranging from tiny objects to ones 260 times its own body weight — all with the same simple design, no need to swap parts or motors.
+
+      Nature already solved this problem. Animals like octopuses, elephants, and chameleons grab objects using flexible, curling limbs (tentacles, trunks, tails) instead of rigid pincers. Researchers noticed these body parts all follow the same curve in math — called a logarithmic spiral — and built a robot using that exact shape.
+    </p>
+    <div class="about-grid">
+      <div>
+        <p>
+        </p>
+      </div>
+      <ul>
+  <li>3D printed plastic body</li>
+  <li>Spiral-shaped joints for bending and curling</li>
+  <li>Lightweight and low-cost to build</li>
+  <li>2 Nema 17 steppermotors driving the joints</li>
+  <li>Joystick module for manual control</li>
+  <li>Powered using adapter</li>
+  <li>Microcontroller (esp32)</li>
+  <li>TB6600 moter driver</li>
+</ul>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="section-head"><span class="tag-num">02</span><h2>How It Works</h2></div>
+    <p class="lead">A breakdown of the three core subsystems that make SPIROB function.</p>
+    <div class="subsystem-grid">
+      <div class="card">
+        <h3>Mechanical</h3>
+        <p>[Describe the structure, materials, and joint/locomotion mechanism.]</p>
+        <ul>
+          <li>[Material used]</li>
+          <li>[Joint type / DOF count]</li>
+          <li>[Fabrication method, e.g. 3D printed]</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Electronics</h3>
+        <p>[Describe sensors, motors, power, and wiring layout.]</p>
+        <ul>
+          <li>[Motor / actuator type]</li>
+          <li>[Sensors used]</li>
+          <li>[Power source]</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Control Software</h3>
+        <p>[Describe the firmware/software stack controlling the robot.]</p>
+        <ul>
+          <li>[Microcontroller / SBC, e.g. Arduino, Raspberry Pi]</li>
+          <li>[Language / framework, e.g. C++, Python, ROS]</li>
+          <li>[Control method, e.g. PID, inverse kinematics]</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="specs">
+  <div class="wrap">
+    <div class="section-head"><span class="tag-num">03</span><h2>Technical Specifications</h2></div>
+    <table>
+      <tr><td>Dimensions</td><td>[L x W x H, e.g. 40cm x 12cm x 12cm]</td></tr>
+      <tr><td>Weight</td><td>[e.g. 850g]</td></tr>
+      <tr><td>Degrees of Freedom</td><td>[e.g. 7 joints]</td></tr>
+      <tr><td>Power Source</td><td>[e.g. 7.4V LiPo battery]</td></tr>
+      <tr><td>Runtime</td><td>[e.g. 45 minutes continuous]</td></tr>
+      <tr><td>Max Speed</td><td>[e.g. 0.3 m/s]</td></tr>
+      <tr><td>Sensors</td><td>[e.g. IMU, ultrasonic, camera]</td></tr>
+      <tr><td>Controller</td><td>[e.g. Arduino Mega / Raspberry Pi 4]</td></tr>
+      <tr><td>Communication</td><td>[e.g. Bluetooth / Wi-Fi]</td></tr>
+    </table>
+  </div>
+</section>
+
+<section id="timeline">
+  <div class="wrap">
+    <div class="section-head"><span class="tag-num">04</span><h2>Development Timeline</h2></div>
+    <div class="timeline">
+      <div class="t-item">
+        <div class="t-date">[MONTH / YEAR]</div>
+        <div class="t-title">Concept &amp; Research</div>
+        <div class="t-desc">[Describe initial idea, research, and feasibility study.]</div>
+      </div>
+      <div class="t-item">
+        <div class="t-date">[MONTH / YEAR]</div>
+        <div class="t-title">First Prototype</div>
+        <div class="t-desc">[Describe the first build, what worked, what failed.]</div>
+      </div>
+      <div class="t-item">
+        <div class="t-date">[MONTH / YEAR]</div>
+        <div class="t-title">Redesign &amp; Iteration</div>
+        <div class="t-desc">[Describe major design changes and why they were made.]</div>
+      </div>
+      <div class="t-item">
+        <div class="t-date">[MONTH / YEAR]</div>
+        <div class="t-title">Final Build</div>
+        <div class="t-desc">[Describe the finished version and key milestones reached.]</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="gallery">
+  <div class="wrap">
+    <div class="section-head"><span class="tag-num">05</span><h2>Gallery</h2></div>
+    <p class="lead">Add photos and videos of the build process and final robot here.</p>
+    <div class="gallery-grid">
+      <div class="gallery-slot">[Photo: full build]</div>
+      <div class="gallery-slot">[Photo: close-up of joints]</div>
+      <div class="gallery-slot">[Video: demo in action]</div>
+      <div class="gallery-slot">[Photo: electronics layout]</div>
+      <div class="gallery-slot">[Photo: prototype v1]</div>
+      <div class="gallery-slot">[Photo: testing / lab setup]</div>
+    </div>
+  </div>
+</section>
+
+<section id="team">
+  <div class="wrap">
+    <div class="section-head"><span class="tag-num">06</span><h2>Team &amp; Credits</h2></div>
+    <div class="team-grid">
+      <div class="team-card">
+        <div class="role">Lead / Builder</div>
+        <div class="name">[Your Name]</div>
+      </div>
+      <div class="team-card">
+        <div class="role">Advisor / Mentor</div>
+        <div class="name">[Name, if applicable]</div>
+      </div>
+      <div class="team-card">
+        <div class="role">Institution</div>
+        <div class="name">[College / School / Lab name]</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="resources">
+  <div class="wrap">
+    <div class="section-head"><span class="tag-num">07</span><h2>Resources</h2></div>
+    <div class="resource-row">
+      <a class="resource-chip" href="#">[GitHub Repo →]</a>
+      <a class="resource-chip" href="#">[CAD Files →]</a>
+      <a class="resource-chip" href="#">[Bill of Materials →]</a>
+      <a class="resource-chip" href="#">[Project Report PDF →]</a>
+    </div>
+  </div>
+</section>
+
+<section id="contact" style="border-bottom:none;">
+  <div class="wrap">
+    <div class="section-head"><span class="tag-num">08</span><h2>Contact</h2></div>
+    <p class="lead">[Add your email and social/portfolio links here.]</p>
+    <div class="resource-row">
+      <a class="resource-chip" href="mailto:youremail@example.com">[your@email.com]</a>
+      <a class="resource-chip" href="#">[GitHub →]</a>
+      <a class="resource-chip" href="#">[LinkedIn →]</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  © <span id="year"></span> SPIROB — Built for showcase purposes.
+</footer>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+</script>
+
+</body>
+</html>
