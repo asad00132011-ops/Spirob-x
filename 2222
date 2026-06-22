@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPIROB — Robotics Project</title>
+<style>
+  :root{
+    --bg: #0b0e14;
+    --panel: rgba(17,23,38,0.72);
+    --panel-solid: #111726;
+    --line: rgba(255,255,255,0.08);
+    --accent: #FF6B35;
+    --accent-dim: #B14A23;
+    --accent-glow: rgba(255,107,53,0.35);
+    --text: #E8ECF1;
+    --muted: #94A0B5;
+    --mono-bg: rgba(8,12,20,0.65);
+    --ease: cubic-bezier(.22,.61,.18,1);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter', -apple-system, sans-serif;
+    line-height:1.6;
+    overflow:hidden;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.01ms !important; transition-duration:0.01ms !important;}
+  }
+
+  .bg-layer{
+    position:fixed; inset:0; z-index:-2;
+    background-image: url('spirob-photo.png');
+    background-size: cover;
+    background-position: center 65%;
+    filter: brightness(0.85) saturate(1.5) blur(0px);
+    transform: scale(1.03);
+  }
+  .bg-veil{
+    position:fixed; inset:0; z-index:-1;
+    background:
+      radial-gradient(ellipse at 20% 15%, rgba(255, 107, 53, 0.16), transparent 50%),
+      radial-gradient(ellipse at 85% 90%, rgba(255,107,53,0.08), transparent 55%),
+      linear-gradient(180deg, rgba(7,9,15,0.55) 0%, rgba(7,9,15,0.82) 45%, rgba(5,6,10,0.94) 100%);
+  }
+  .grain{
+    position:fixed; inset:0; z-index:-1; opacity:0.05; pointer-events:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  a{color:var(--accent); text-decoration:none;}
+  .wrap{max-width:1080px; margin:0 auto; padding:0 24px; width:100%;}
+
+  .navdots{
+    position:fixed; right:28px; top:50%; transform:translateY(-50%);
+    z-index:60; display:flex; flex-direction:column; gap:13px;
+  }
+  .navdots button{
+    width:9px; height:9px; border-radius:50%; border:1px solid var(--muted);
+    background:transparent; cursor:pointer; padding:0; transition:all .3s var(--ease);
+  }
+  .navdots button.active{ background:var(--accent); border-color:var(--accent); box-shadow:0 0 10px var(--accent-glow); transform:scale(1.3);}
+
+  .topbar{
+    position:fixed; top:0; left:0; right:0; z-index:55; height:64px;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 28px; pointer-events:none;
+  }
+  .logo{font-family:'JetBrains Mono', monospace; font-weight:700; letter-spacing:2px; font-size:16px; pointer-events:auto;}
+  .logo span{color:var(--accent);}
+  .hint{
+    font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:1px;
+    color:var(--muted); text-transform:uppercase; opacity:0.8; pointer-events:auto;
+  }
+
+  .menubar{
+    display:flex; gap:22px; pointer-events:auto;
+  }
+  .menubar a{
+    font-family:'JetBrains Mono', monospace; font-size:11.5px; letter-spacing:1px;
+    text-transform:uppercase; color:var(--muted); position:relative; padding-bottom:4px;
+    transition:color .2s;
+  }
+  .menubar a::after{
+    content:''; position:absolute; left:0; bottom:0; width:0; height:1px;
+    background:var(--accent); transition:width .25s ease;
+  }
+  .menubar a:hover{color:var(--text);}
+  .menubar a:hover::after{width:100%;}
+  .menubar a.active{color:var(--accent);}
+  .menubar a.active::after{width:100%;}
+
+  .menu-toggle{
+    display:none; flex-direction:column; gap:4px; background:none; border:none;
+    cursor:pointer; padding:6px; pointer-events:auto;
+  }
+  .menu-toggle span{width:20px; height:2px; background:var(--text); display:block;}
+
+  @media (max-width:880px){
+    .menubar{
+      position:fixed; top:64px; left:0; right:0; background:rgba(8,12,20,0.92);
+      flex-direction:column; gap:0; max-height:0; overflow:hidden;
+      transition:max-height .3s ease; backdrop-filter:blur(10px);
+    }
+    .menubar.open{max-height:560px; overflow-y:auto;}
+    .menubar a{padding:14px 28px; border-bottom:1px solid var(--line); width:100%;}
+    .menu-toggle{display:flex;}
+    .hint{display:none;}
+  }
+
+  /* ===================== SLIDE TRANSITIONS ===================== */
+  .slides{ height:100vh; width:100%; position:relative; perspective:1400px; }
+  .slide{
+    position:absolute; inset:0; height:100vh; width:100%;
+    display:flex; align-items:center;
+    opacity:0; pointer-events:none; visibility:hidden;
+    transform:translateY(36px) scale(0.985);
+    transition: opacity .6s var(--ease), transform .6s var(--ease), visibility 0s;
+    overflow-y:auto;
+    will-change:transform, opacity;
+  }
+  .slide.active{
+    opacity:1; pointer-events:auto; visibility:visible;
+    transform:translateY(0) scale(1);
+    transition-delay:0s;
+  }
+  .slide.leaving-up{ transform:translateY(-36px) scale(0.985); }
+  .slide.leaving-down{ transform:translateY(36px) scale(0.985); }
+
+  .slide .wrap{ padding-top:90px; padding-bottom:60px; margin:auto; }
+
+  /* staggered reveal for content inside the active slide */
+  .slide .reveal{
+    opacity:0; transform:translateY(16px);
+    transition:opacity .55s var(--ease), transform .55s var(--ease);
+  }
+  .slide.active .reveal{ opacity:1; transform:translateY(0); }
+  .slide.active .reveal:nth-of-type(1){ transition-delay:.05s; }
+  .slide.active .reveal:nth-of-type(2){ transition-delay:.12s; }
+  .slide.active .reveal:nth-of-type(3){ transition-delay:.19s; }
+  .slide.active .reveal:nth-of-type(4){ transition-delay:.26s; }
+  .slide.active .reveal:nth-of-type(5){ transition-delay:.33s; }
+
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    color:var(--accent); font-size:13px; letter-spacing:3px;
+    text-transform:uppercase; margin-bottom:18px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .eyebrow::before{content:""; width:8px; height:8px; background:var(--accent); display:inline-block; box-shadow:0 0 8px var(--accent); animation:pulseDot 2.4s ease-in-out infinite;}
+  @keyframes pulseDot{ 0%,100%{opacity:1; transform:scale(1);} 50%{opacity:.55; transform:scale(0.8);} }
+
+  h1{
+    font-family:'JetBrains Mono', monospace;
+    font-size:clamp(48px, 9vw, 92px);
+    font-weight:700; letter-spacing:-2px; line-height:0.95;
+    margin-bottom:22px;
+  }
+  .tagline{font-size:19px; color:var(--muted); max-width:560px; margin-bottom:32px;}
+  .cta-row{display:flex; gap:16px; flex-wrap:wrap;}
+  .btn{
+    font-family:'JetBrains Mono', monospace; font-size:13px; letter-spacing:1px;
+    text-transform:uppercase; padding:14px 28px; border:1px solid var(--accent);
+    color:var(--accent); border-radius:2px; transition:all .2s; background:rgba(0,0,0,0.2);
+    cursor:pointer;
+  }
+  .btn:hover{background:var(--accent); color:#0b0e14;}
+  .btn.ghost{border-color:var(--line); color:var(--muted);}
+  .btn.ghost:hover{border-color:var(--muted); color:var(--text); background:rgba(255,255,255,0.04);}
+
+  .section-head{display:flex; align-items:baseline; gap:16px; margin-bottom:36px;}
+  .tag-num{font-family:'JetBrains Mono', monospace; color:var(--accent-dim); font-size:14px;}
+  h2{font-family:'JetBrains Mono', monospace; font-size:30px; letter-spacing:-1px;}
+  .lead{color:var(--muted); max-width:680px; margin-bottom:32px; font-size:15px;}
+
+  .glass{
+    background:var(--panel); border:1px solid var(--line); border-radius:6px;
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  }
+
+  .about-grid{display:grid; grid-template-columns: 1.2fr 1fr; gap:40px; align-items:start;}
+  .feature-list{list-style:none;}
+  .feature-list li{
+    padding:13px 18px; border-bottom:1px solid var(--line);
+    display:flex; gap:14px; align-items:flex-start; font-size:14px;
+  }
+  .feature-list li:last-child{border-bottom:none;}
+  .feature-list .f-icon{ color:var(--accent); font-family:'JetBrains Mono', monospace; font-size:13px; flex-shrink:0; width:18px;}
+
+  .subsystem-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:20px;}
+  .card{ padding:26px; border-radius:6px; transition:border-color .25s var(--ease), transform .25s var(--ease), box-shadow .25s var(--ease);}
+  .card:hover{ transform:translateY(-4px); border-color:var(--accent-dim); box-shadow:0 14px 30px -10px rgba(0,0,0,0.5);}
+  .card h3{
+    font-family:'JetBrains Mono', monospace; font-size:14px; letter-spacing:1px;
+    text-transform:uppercase; color:var(--accent); margin-bottom:12px;
+  }
+  .card p{color:var(--muted); font-size:13.5px;}
+  .card ul{margin-top:12px; padding-left:18px; color:var(--text); font-size:13.5px;}
+  .card ul li{margin-bottom:5px;}
+
+  table{width:100%; border-collapse:collapse; font-family:'JetBrains Mono', monospace; font-size:13.5px;}
+  table tr{border-bottom:1px solid var(--line);}
+  table td{padding:14px 12px;}
+  table td:first-child{color:var(--muted); width:230px; text-transform:uppercase; font-size:11.5px; letter-spacing:1px;}
+  table td:last-child{color:var(--text);}
+  table tr:hover{background:rgba(255,107,53,0.05);}
+
+  .timeline{position:relative; padding-left:30px; border-left:1px solid var(--line);}
+  .t-item{position:relative; margin-bottom:28px;}
+  .t-item::before{
+    content:""; position:absolute; left:-36px; top:4px;
+    width:10px; height:10px; border-radius:50%; background:var(--bg);
+    border:2px solid var(--accent);
+  }
+  .t-date{font-family:'JetBrains Mono', monospace; color:var(--accent); font-size:11.5px; letter-spacing:1px; margin-bottom:5px;}
+  .t-title{font-weight:600; margin-bottom:3px; font-size:15px;}
+  .t-desc{color:var(--muted); font-size:13.5px;}
+  .t-link{display:inline-flex; align-items:center; gap:6px; margin-top:8px; font-family:'JetBrains Mono', monospace; font-size:11.5px; letter-spacing:.5px; text-transform:uppercase; color:var(--accent);}
+  .t-link:hover{text-decoration:underline;}
+
+  .demo-grid{display:grid; grid-template-columns: 1fr 280px; gap:40px; align-items:center;}
+  .robot-stage{
+    border-radius:8px; padding:20px; min-height:380px;
+    display:flex; align-items:center; justify-content:center; position:relative;
+  }
+  .robot-stage svg{width:100%; max-width:420px; height:auto;}
+  .joystick-wrap{display:flex; flex-direction:column; align-items:center; gap:18px;}
+  .joy-base{
+    width:160px; height:160px; border-radius:50%;
+    background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.05), rgba(0,0,0,0.3));
+    border:1px solid var(--line); position:relative; touch-action:none;
+  }
+  .joy-ring{position:absolute; inset:8px; border-radius:50%; border:1px dashed var(--line);}
+  .joy-knob{
+    width:54px; height:54px; border-radius:50%; position:absolute; left:50%; top:50%;
+    transform:translate(-50%,-50%);
+    background: radial-gradient(circle at 35% 30%, #ff8a5c, var(--accent-dim));
+    box-shadow:0 0 18px var(--accent-glow), inset 0 0 8px rgba(0,0,0,0.4);
+    cursor:grab; border:1px solid rgba(255,255,255,0.2);
+  }
+  .joy-readout{
+    font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--muted); letter-spacing:1px;
+    display:flex; gap:14px;
+  }
+  .joy-readout b{color:var(--accent); font-weight:500;}
+
+  /* ===== Demo toolbar / dock ===== */
+  .demo-dock{
+    display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+    margin-top:22px; padding:12px 18px; border-radius:10px;
+  }
+  .demo-dock .dock-btn{
+    display:flex; align-items:center; gap:8px;
+    font-family:'JetBrains Mono', monospace; font-size:12px; letter-spacing:0.5px;
+    color:var(--muted); background:rgba(255,255,255,0.03); border:1px solid var(--line);
+    border-radius:6px; padding:9px 14px; cursor:pointer; transition:all .2s var(--ease);
+  }
+  .demo-dock .dock-btn:hover{ color:var(--text); border-color:var(--accent-dim); background:rgba(255,107,53,0.06); }
+  .demo-dock .dock-btn.is-active{ color:var(--accent); border-color:var(--accent); box-shadow:0 0 0 1px var(--accent-glow) inset; }
+  .demo-dock .dock-btn svg{ width:14px; height:14px; flex-shrink:0; }
+  .demo-dock .dock-sep{ width:1px; height:22px; background:var(--line); }
+  .demo-dock .dock-speed{ display:flex; align-items:center; gap:10px; }
+  .demo-dock .dock-speed label{
+    font-family:'JetBrains Mono', monospace; font-size:10.5px; letter-spacing:1px;
+    text-transform:uppercase; color:var(--muted);
+  }
+  .demo-dock input[type="range"]{
+    -webkit-appearance:none; appearance:none; width:100px; height:3px;
+    background:var(--line); border-radius:2px; outline:none; cursor:pointer;
+  }
+  .demo-dock input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:13px; height:13px; border-radius:50%;
+    background:var(--accent); box-shadow:0 0 6px var(--accent-glow); cursor:pointer;
+  }
+  .demo-dock input[type="range"]::-moz-range-thumb{
+    width:13px; height:13px; border-radius:50%; border:none;
+    background:var(--accent); box-shadow:0 0 6px var(--accent-glow); cursor:pointer;
+  }
+  .dock-speed-val{ color:var(--accent); font-family:'JetBrains Mono', monospace; font-size:11px; width:30px; }
+  @media (max-width:880px){
+    .demo-dock{ justify-content:center; }
+  }
+
+  .gallery-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px;}
+  .gallery-slot{
+    aspect-ratio:4/3; border:1px dashed var(--line); border-radius:6px;
+    display:flex; align-items:center; justify-content:center; flex-direction:column; gap:6px;
+    color:var(--muted); font-family:'JetBrains Mono', monospace; font-size:11px; text-align:center; padding:14px;
+    background:rgba(255,255,255,0.02);
+  }
+
+  .team-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(190px,1fr)); gap:18px;}
+  .team-card{ padding:22px; border-radius:6px; text-align:left; position:relative; overflow:hidden;}
+  .team-card::before{
+    content:""; position:absolute; top:0; left:0; width:3px; height:100%; background:var(--accent);
+    opacity:0.7;
+  }
+  .team-card .role{color:var(--accent); font-family:'JetBrains Mono', monospace; font-size:10.5px; letter-spacing:1px; text-transform:uppercase; margin-bottom:8px;}
+  .team-card .name{font-size:17px; font-weight:600;}
+  .mentor-card{
+    margin-top:22px; padding:20px 24px; border-radius:6px; display:flex; align-items:center; gap:16px;
+    border-color:var(--accent-dim);
+  }
+  .mentor-card .role{color:var(--accent);}
+  .mentor-card .name{font-size:18px; font-weight:700;}
+  .mentor-tagicon{font-family:'JetBrains Mono', monospace; font-size:22px; color:var(--accent);}
+
+  .resource-row{display:flex; gap:14px; flex-wrap:wrap;}
+  .resource-chip{
+    border:1px solid var(--line); padding:12px 20px; border-radius:4px; font-family:'JetBrains Mono', monospace;
+    font-size:12.5px; display:flex; align-items:center; gap:10px; color:var(--text);
+    background:rgba(255,255,255,0.02); transition:border-color .2s, transform .2s var(--ease);
+  }
+  .resource-chip:hover{border-color:var(--accent); transform:translateY(-2px);}
+
+  /* ===== Week report slides ===== */
+  .week-head{
+    display:flex; align-items:center; justify-content:space-between; gap:20px;
+    flex-wrap:wrap; margin-bottom:26px;
+  }
+  .week-progress{display:flex; gap:8px;}
+  .week-progress span{
+    width:34px; height:4px; border-radius:2px; background:var(--line); transition:background .3s var(--ease);
+  }
+  .week-progress span.done{background:var(--accent);}
+  .week-body{display:grid; grid-template-columns:1fr 1fr; gap:28px;}
+  .week-block h4{
+    font-family:'JetBrains Mono', monospace; font-size:11.5px; letter-spacing:1.5px;
+    text-transform:uppercase; color:var(--accent); margin-bottom:10px;
+  }
+  .week-block p{color:var(--text); opacity:0.9; font-size:14.5px;}
+  .week-block ul{padding-left:18px; color:var(--text); opacity:0.9; font-size:14.5px;}
+  .week-block ul li{margin-bottom:6px;}
+  .week-block{padding:24px; border-radius:6px;}
+  .week-nav{display:flex; gap:14px; margin-top:30px;}
+
+  footer.foot{
+    position:absolute; bottom:14px; left:0; right:0; text-align:center; color:var(--muted);
+    font-family:'JetBrains Mono', monospace; font-size:11px; z-index:5; pointer-events:none;
+  }
+
+  @media (max-width:880px){
+    .about-grid, .subsystem-grid, .gallery-grid, .demo-grid, .week-body{grid-template-columns:1fr;}
+    .navdots{ right:14px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-layer"></div>
+<div class="bg-veil"></div>
+<div class="grain"></div>
+
+<div class="topbar">
+  <div class="logo">SPI<span>ROB</span></div>
+
+  <nav class="menubar" id="menubar">
+    <a href="#" data-go="0">Intro</a>
+    <a href="#" data-go="1">About</a>
+    <a href="#" data-go="2">System</a>
+    <a href="#" data-go="3">Demo</a>
+    <a href="#" data-go="4">Specs</a>
+    <a href="#" data-go="5">Timeline</a>
+    <a href="#" data-go="6">Week 1</a>
+    <a href="#" data-go="7">Week 2</a>
+    <a href="#" data-go="8">Week 3</a>
+    <a href="#" data-go="9">Gallery</a>
+    <a href="#" data-go="10">Team</a>
+    <a href="#" data-go="11">Contact</a>
+  </nav>
+
+  <button class="menu-toggle" id="menuToggle" aria-label="Open menu">
+    <span></span><span></span><span></span>
+  </button>
+
+  <div class="hint">right-click, arrows, or click left/right to navigate</div>
+</div>
+
+<div class="navdots" id="navdots"></div>
+
+<div class="slides" id="slides">
+
+  <!-- 0 : HERO -->
+  <section class="slide" data-title="Intro">
+    <div class="wrap">
+      <div class="eyebrow reveal">Robotics / Hardware Project</div>
+      <h1 class="reveal">SPIROB</h1>
+      <p class="tagline reveal">
+        A soft, cable-driven robot shaped like a logarithmic spiral — the same curve found in nature in octopus arms
+        and chameleon tails. It morphologically replicates this curling, life-like motion to grip
+        objects of almost any size with one simple design.
+      </p>
+      <div class="cta-row reveal">
+        <a href="#" class="btn" data-go="1">View Project</a>
+        <a href="#" class="btn ghost" data-go="11">Get in Touch</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 : ABOUT -->
+  <section class="slide" data-title="About">
+    <div class="wrap">
+      <div class="section-head reveal"><span class="tag-num">01</span><h2>About the Project</h2></div>
+      <p class="lead reveal">
+        Most robot grippers struggle with one thing: handling objects of very different sizes and shapes with the same
+        gripper. A gripper built for small objects usually fails on large ones, and vice versa. SPIROB solves this by
+        gripping things ranging from tiny objects to ones over 250× its own body weight — all with the same simple
+        design, no need to swap parts or motors. Nature already solved this: octopuses and chameleons grab with
+        flexible curling limbs that trace a logarithmic spiral, so we built a robot using that exact shape.
+      </p>
+      <div class="about-grid reveal">
+        <ul class="feature-list glass">
+          <li><span class="f-icon">▸</span>3D printed plastic spiral body</li>
+          <li><span class="f-icon">▸</span>Spiral-shaped joints for bending &amp; curling</li>
+          <li><span class="f-icon">▸</span>Lightweight and low-cost to build</li>
+          <li><span class="f-icon">▸</span>2× NEMA 17 stepper motors driving the joints</li>
+          <li><span class="f-icon">▸</span>Joystick module for manual control</li>
+          <li><span class="f-icon">▸</span>Powered via wall adapter</li>
+          <li><span class="f-icon">▸</span>ESP32 microcontroller</li>
+          <li><span class="f-icon">▸</span>TB6600 stepper motor driver</li>
+        </ul>
+        <div class="glass" style="padding:24px;">
+          <div class="eyebrow" style="margin-bottom:10px; font-size:11px;">Why it matters</div>
+          <p style="color:var(--muted); font-size:14px;">
+            One spiral, one set of motors, one control loop — no reconfiguration between objects. The geometry itself
+            adapts grip force and contact area as it curls, which is what makes the size range possible. A chameleon's
+            tail curls the same way: thin, tapering, and flexible along its whole length, rather than rigid like a trunk.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 : SYSTEM -->
+  <section class="slide" data-title="System">
+    <div class="wrap">
+      <div class="section-head reveal"><span class="tag-num">02</span><h2>How It Works</h2></div>
+      <p class="lead reveal">Three subsystems work together to turn a joystick input into a curling spiral motion.</p>
+      <div class="subsystem-grid reveal">
+        <div class="card glass">
+          <h3>Mechanical</h3>
+          <p>The body is a 3D printed logarithmic-spiral shell with hinge-style joints along its length.</p>
+          <ul>
+            <li>3D printed PLA/PETG segments</li>
+            <li>Cable-driven curling joints</li>
+            <li>Tapering spiral cross-section</li>
+          </ul>
+        </div>
+        <div class="card glass">
+          <h3>Electronics</h3>
+          <p>Two stepper motors pull drive cables through the spine, regulated by a dedicated driver board.</p>
+          <ul>
+            <li>2× NEMA 17 stepper motors</li>
+            <li>TB6600 motor driver</li>
+            <li>Joystick input module</li>
+            <li>DC adapter power supply</li>
+          </ul>
+        </div>
+        <div class="card glass">
+          <h3>Control Software</h3>
+          <p>An ESP32 reads joystick position and converts it into motor step commands in real time.</p>
+          <ul>
+            <li>ESP32 microcontroller</li>
+            <li>C++ / Arduino framework</li>
+            <li>Direct joystick-to-step mapping</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 : JOYSTICK DEMO -->
+  <section class="slide" data-title="Control Demo">
+    <div class="wrap">
+      <div class="section-head reveal"><span class="tag-num">03</span><h2>Live Control Demo</h2></div>
+      <p class="lead reveal">A simplified preview of how joystick input curls the spiral arm. Drag the knob below.</p>
+      <div class="demo-grid reveal">
+        <div class="robot-stage glass">
+          <svg viewBox="0 0 420 440" id="armSvg">
+            <defs>
+              <linearGradient id="armGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#ff8a5c"/>
+                <stop offset="100%" stop-color="#B14A23"/>
+              </linearGradient>
+            </defs>
+            <ellipse cx="210" cy="406" rx="34" ry="14" fill="#0d1320" opacity="0.6"/>
+            <circle cx="210" cy="400" r="28" fill="#1a2233" stroke="#3a4660" stroke-width="2"/>
+            <path id="trunkPath" fill="url(#armGrad)" stroke="#7a3318" stroke-width="1"/>
+            <g id="ridges"></g>
+            <circle id="tipDot" r="5" fill="#2a160c" opacity="0.85"/>
+          </svg>
+        </div>
+        <div class="joystick-wrap">
+          <div class="joy-base" id="joyBase">
+            <div class="joy-ring"></div>
+            <div class="joy-knob" id="joyKnob"></div>
+          </div>
+          <div class="joy-readout">
+            <span>X <b id="readX">0.00</b></span>
+            <span>Y <b id="readY">0.00</b></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="demo-dock glass reveal">
+        <button class="dock-btn is-active" id="dockPlay" type="button">
+          <svg id="dockPlayIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="5" width="4" height="14"></rect><rect x="14" y="5" width="4" height="14"></rect></svg>
+          <span id="dockPlayLabel">Pause idle</span>
+        </button>
+        <button class="dock-btn" id="dockReset" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+          <span>Reset arm</span>
+        </button>
+        <div class="dock-sep"></div>
+        <div class="dock-speed">
+          <label for="dockSpeed">Flex</label>
+          <input type="range" id="dockSpeed" min="0.4" max="1.8" step="0.05" value="1">
+          <span class="dock-speed-val" id="dockSpeedVal">1.0×</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 : SPECS -->
+  <section class="slide" data-title="Specs">
+    <div class="wrap">
+      <div class="section-head reveal"><span class="tag-num">04</span><h2>Technical Specifications</h2></div>
+      <div class="glass reveal" style="padding:6px 18px;">
+        <table>
+          <tr><td>Dimensions</td><td>[L × W × H]</td></tr>
+          <tr><td>Weight</td><td>[e.g. 850g]</td></tr>
+          <tr><td>Degrees of Freedom</td><td>[e.g. number of joints]</td></tr>
+          <tr><td>Power Source</td><td>DC adapter, regulated supply for TB6600</td></tr>
+          <tr><td>Actuation</td><td>2× NEMA 17 stepper motors, cable-driven</td></tr>
+          <tr><td>Controller</td><td>ESP32</td></tr>
+          <tr><td>Driver</td><td>TB6600 stepper driver</td></tr>
+          <tr><td>Input</td><td>Analog joystick module</td></tr>
+          <tr><td>Max Payload</td><td>~260× body weight</td></tr>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 : TIMELINE -->
+  <section class="slide" data-title="Timeline">
+    <div class="wrap">
+      <div class="section-head reveal"><span class="tag-num">05</span><h2>Development Timeline</h2></div>
+      <div class="timeline reveal">
+        <div class="t-item">
+          <div class="t-date">[WEEK 1]</div>
+          <div class="t-title">Concept &amp; Research</div>
+          <div class="t-desc">Studied logarithmic-spiral limbs in nature and feasibility of a cable-driven build.</div>
+          <a href="#" class="t-link" data-go="6">Full report →</a>
+        </div>
+        <div class="t-item">
+          <div class="t-date">[WEEK 2]</div>
+          <div class="t-title">First Prototype</div>
+          <div class="t-desc">Built the first spiral shell and tested basic curling with a single motor.</div>
+          <a href="#" class="t-link" data-go="7">Full report →</a>
+        </div>
+        <div class="t-item">
+          <div class="t-date">[WEEK 3]</div>
+          <div class="t-title">Redesign &amp; Iteration</div>
+          <div class="t-desc">Upgraded to dual NEMA 17 motors and TB6600 driver for stronger, smoother curling.</div>
+          <a href="#" class="t-link" data-go="8">Full report →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 : WEEK 1 REPORT -->
+  <section class="slide" data-title="Week 1">
+    <div class="wrap">
+      <div class="week-head reveal">
+        <div class="section-head" style="margin-bottom:0;"><span class="tag-num">06</span><h2>Week 1 — Concept &amp; Research</h2></div>
+        <div class="week-progress" aria-hidden="true">
+          <span class="done"></span><span></span><span></span>
+        </div>
+      </div>
+      <p class="lead reveal">[Add a short summary of the week's goal here.]</p>
+      <div class="week-body reveal">
+        <div class="week-block glass">
+          <h4>What was researched</h4>
+          <p>[Write what background research was done — e.g. logarithmic-spiral limbs in nature, existing soft-robotic grippers, cable-driven actuation methods. Note key sources used.]</p>
+        </div>
+        <div class="week-block glass">
+          <h4>Key decisions</h4>
+          <ul>
+            <li>[Decision about spiral geometry / curvature rate]</li>
+            <li>[Decision about taper angle]</li>
+            <li>[Decision about material choice]</li>
+          </ul>
+        </div>
+        <div class="week-block glass">
+          <h4>Problems identified</h4>
+          <p>[Note any feasibility concerns or open questions flagged before building started.]</p>
+        </div>
+        <div class="week-block glass">
+          <h4>Outcome</h4>
+          <p>[Summarize what the team concluded by the end of Week 1 and what it set up for Week 2.]</p>
+        </div>
+      </div>
+      <div class="week-nav reveal">
+        <a href="#" class="btn ghost" data-go="5">← Timeline</a>
+        <a href="#" class="btn" data-go="7">Week 2 →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 : WEEK 2 REPORT -->
+  <section class="slide" data-title="Week 2">
+    <div class="wrap">
+      <div class="week-head reveal">
+        <div class="section-head" style="margin-bottom:0;"><span class="tag-num">07</span><h2>Week 2 — First Prototype</h2></div>
+        <div class="week-progress" aria-hidden="true">
+          <span class="done"></span><span class="done"></span><span></span>
+        </div>
+      </div>
+      <p class="lead reveal">[Add a short summary of the week's goal here.]</p>
+      <div class="week-body reveal">
+        <div class="week-block glass">
+          <h4>Build steps</h4>
+          <p>[Describe the exact build steps taken to make the first spiral shell prototype.]</p>
+        </div>
+        <div class="week-block glass">
+          <h4>Materials &amp; tools</h4>
+          <ul>
+            <li>[Material / filament used]</li>
+            <li>[Printer / tools used]</li>
+            <li>[Single motor + mount used for test]</li>
+          </ul>
+        </div>
+        <div class="week-block glass">
+          <h4>Test results</h4>
+          <p>[Describe how the first single-motor curling test went, with measurements taken — e.g. curl angle, cable tension, range of motion.]</p>
+        </div>
+        <div class="week-block glass">
+          <h4>What didn't work</h4>
+          <p>[Note any failures, weak points, or unexpected behavior found during testing.]</p>
+        </div>
+      </div>
+      <div class="week-nav reveal">
+        <a href="#" class="btn ghost" data-go="6">← Week 1</a>
+        <a href="#" class="btn" data-go="8">Week 3 →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 : WEEK 3 REPORT -->
+  <section class="slide" data-title="Week 3">
+    <div class="wrap">
+      <div class="week-head reveal">
+        <div class="section-head" style="margin-bottom:0;"><span class="tag-num">08</span><h2>Week 3 — Redesign &amp; Iteration</h2></div>
+        <div class="week-progress" aria-hidden="true">
+          <span class="done"></span><span class="done"></span><span class="done"></span>
+        </div>
+      </div>
+      <p class="lead reveal">[Add a short summary of the week's goal here.]</p>
+      <div class="week-body reveal">
+        <div class="week-block glass">
+          <h4>What changed</h4>
+          <p>[Describe what was redesigned from the Week 2 prototype — e.g. joint geometry, drive mechanism, shell thickness.]</p>
+        </div>
+        <div class="week-block glass">
+          <h4>Why dual NEMA 17 + TB6600</h4>
+          <p>[Explain why the team moved to two NEMA 17 motors with a TB6600 driver — torque, control precision, reliability.]</p>
+        </div>
+        <div class="week-block glass">
+          <h4>New results vs. Week 2</h4>
+          <ul>
+            <li>[Comparison metric 1 — e.g. curl strength]</li>
+            <li>[Comparison metric 2 — e.g. smoothness of motion]</li>
+            <li>[Comparison metric 3 — e.g. max payload tested]</li>
+          </ul>
+        </div>
+        <div class="week-block glass">
+          <h4>What's planned next</h4>
+          <p>[Outline next steps after Week 3 — further testing, refinements, or features planned.]</p>
+        </div>
+      </div>
+      <div class="week-nav reveal">
+        <a href="#" class="btn ghost" data-go="7">← Week 2</a>
+        <a href="#" class="btn" data-go="9">Gallery →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 : GALLERY -->
+  <section class="slide" data-title="Gallery">
+    <div class="wrap">
+      <div class="section-head reveal"><span class="tag-num">09</span><h2>Gallery</h2></div>
+      <p class="lead reveal">Add photos and videos of the build process and final robot here.</p>
+      <div class="gallery-grid reveal">
+        <div class="gallery-slot">[Photo: full build]</div>
+        <div class="gallery-slot">[Photo: close-up of joints]</div>
+        <div class="gallery-slot">[Video: demo in action]</div>
+        <div class="gallery-slot">[Photo: electronics layout]</div>
+        <div class="gallery-slot">[Photo: prototype v1]</div>
+        <div class="gallery-slot">[Photo: testing / lab setup]</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 : TEAM -->
+  <section class="slide" data-title="Team">
+    <div class="wrap">
+      <div class="section-head reveal"><span class="tag-num">10</span><h2>Team &amp; Credits</h2></div>
+      <div class="team-grid reveal">
+        <div class="team-card glass"><div class="role">Member</div><div class="name">Utkarsh</div></div>
+        <div class="team-card glass"><div class="role">Member</div><div class="name">Devyansh</div></div>
+        <div class="team-card glass"><div class="role">Member</div><div class="name">Anushka</div></div>
+        <div class="team-card glass"><div class="role">Member</div><div class="name">Akshat</div></div>
+        <div class="team-card glass"><div class="role">Member</div><div class="name">Asad</div></div>
+      </div>
+      <div class="mentor-card glass reveal">
+        <div class="mentor-tagicon">★</div>
+        <div>
+          <div class="role">Mentor</div>
+          <div class="name">Nirmit Jasani</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 : CONTACT / RESOURCES -->
+  <section class="slide" data-title="Contact">
+    <div class="wrap">
+      <div class="section-head reveal"><span class="tag-num">11</span><h2>Resources &amp; Contact</h2></div>
+      <p class="lead reveal" style="margin-bottom:16px;">Project links and ways to reach the team.</p>
+      <div class="resource-row reveal" style="margin-bottom:28px;">
+        <a class="resource-chip" href="#">[GitHub Repo →]</a>
+        <a class="resource-chip" href="#">[CAD Files →]</a>
+        <a class="resource-chip" href="#">[Bill of Materials →]</a>
+        <a class="resource-chip" href="#">[Project Report PDF →]</a>
+      </div>
+      <div class="resource-row reveal">
+        <a class="resource-chip" href="mailto:youremail@example.com">[your@email.com]</a>
+        <a class="resource-chip" href="#">[GitHub →]</a>
+        <a class="resource-chip" href="#">[LinkedIn →]</a>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<footer class="foot">© <span id="year"></span> SPIROB — Built for showcase purposes.</footer>
+
+<script>
+document.getElementById('year').textContent = new Date().getFullYear();
+
+/* ===================== SLIDE NAVIGATION ===================== */
+const slideEls = Array.from(document.querySelectorAll('.slide'));
+const navdots = document.getElementById('navdots');
+const menuLinks = Array.from(document.querySelectorAll('.menubar a'));
+const menubarEl = document.getElementById('menubar');
+const menuToggle = document.getElementById('menuToggle');
+let current = 0;
+let isAnimating = false;
+const TRANSITION_MS = 600;
+
+slideEls.forEach((s, i) => {
+  const dot = document.createElement('button');
+  dot.title = s.dataset.title || ('Slide ' + (i+1));
+  dot.addEventListener('click', () => goTo(i));
+  navdots.appendChild(dot);
+});
+const dots = Array.from(navdots.children);
+
+menuToggle.addEventListener('click', () => menubarEl.classList.toggle('open'));
+menuLinks.forEach(a => a.addEventListener('click', () => menubarEl.classList.remove('open')));
+
+function goTo(i){
+  if(i < 0) i = slideEls.length - 1;
+  if(i >= slideEls.length) i = 0;
+  if(i === current || isAnimating) return;
+
+  const goingForward = (i > current) || (current === slideEls.length - 1 && i === 0);
+  const outgoing = slideEls[current];
+  isAnimating = true;
+
+  outgoing.classList.add(goingForward ? 'leaving-up' : 'leaving-down');
+  outgoing.classList.remove('active');
+
+  current = i;
+  render();
+
+  setTimeout(() => {
+    outgoing.classList.remove('leaving-up', 'leaving-down');
+    isAnimating = false;
+  }, TRANSITION_MS);
+}
+function next(){ goTo(current + 1); }
+function prev(){ goTo(current - 1); }
+
+function render(){
+  slideEls.forEach((s, i) => s.classList.toggle('active', i === current));
+  dots.forEach((d, i) => d.classList.toggle('active', i === current));
+  menuLinks.forEach(a => a.classList.toggle('active', parseInt(a.dataset.go, 10) === current));
+}
+slideEls[0].classList.add('active');
+render();
+
+document.querySelectorAll('[data-go]').forEach(el => {
+  el.addEventListener('click', (e) => {
+    e.preventDefault();
+    goTo(parseInt(el.dataset.go, 10));
+  });
+});
+
+document.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  next();
+});
+
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === 'PageDown') next();
+  if (e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key === 'PageUp') prev();
+});
+
+document.addEventListener('click', (e) => {
+  if (e.target.closest('a, button, input, .navdots, .menubar, .joy-base, .resource-chip, .menu-toggle')) return;
+  if (e.clientX > window.innerWidth / 2) {
+    next();
+  } else {
+    prev();
+  }
+});
+
+
+
+
+/* ===================== JOYSTICK + SPIRAL ARM ===================== */
+const joyBase = document.getElementById('joyBase');
+const joyKnob = document.getElementById('joyKnob');
+const readX = document.getElementById('readX');
+const readY = document.getElementById('readY');
+const trunkPath = document.getElementById('trunkPath');
+const ridgesG = document.getElementById('ridges');
+const tipDot = document.getElementById('tipDot');
+
+const BASE_X = 210, BASE_Y = 400;
+const NUM_SEGMENTS = 40;
+const SEG_LEN = 9;
+const BASE_WIDTH = 26;
+const TIP_WIDTH = 3;
+
+const ridgeMarks = [];
+for (let i = 2; i < NUM_SEGMENTS - 2; i += 2) {
+  const r = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  r.setAttribute('stroke', 'rgba(0,0,0,0.18)');
+  r.setAttribute('stroke-width', '1.4');
+  r.setAttribute('fill', 'none');
+  ridgesG.appendChild(r);
+  ridgeMarks.push({ el: r, index: i });
+}
+
+let dragging = false;
+let tx = 0, ty = 0;
+let cx = 0, cy = 0;
+
+// per-segment lagging "bend" state — each joint chases the one above it
+// with its own damping + a touch of overshoot, which is what produces a
+// whip-like / organic curl instead of every joint moving in lockstep.
+const segBend = new Array(NUM_SEGMENTS).fill(0);
+const segVel = new Array(NUM_SEGMENTS).fill(0);
+
+// dock state
+let idlePlaying = true;
+let flexMult = 1;
+let resetPulse = 0; // brief outward "shake" timer after Reset is pressed
+
+function setKnobFromClient(clientX, clientY){
+  const rect = joyBase.getBoundingClientRect();
+  const cxBase = rect.left + rect.width/2;
+  const cyBase = rect.top + rect.height/2;
+  let dx = clientX - cxBase;
+  let dy = clientY - cyBase;
+  const max = rect.width/2 - 27;
+  const dist = Math.hypot(dx, dy);
+  if (dist > max) { dx = dx/dist*max; dy = dy/dist*max; }
+  joyKnob.style.left = `calc(50% + ${dx}px)`;
+  joyKnob.style.top = `calc(50% + ${dy}px)`;
+  tx = dx / max;
+  ty = dy / max;
+  readX.textContent = tx.toFixed(2);
+  readY.textContent = ty.toFixed(2);
+}
+
+function resetKnob(){
+  joyKnob.style.left = '50%';
+  joyKnob.style.top = '50%';
+  tx = 0; ty = 0;
+  readX.textContent = '0.00';
+  readY.textContent = '0.00';
+}
+
+/* ---- dock controls ---- */
+const dockPlay = document.getElementById('dockPlay');
+const dockPlayIcon = document.getElementById('dockPlayIcon');
+const dockPlayLabel = document.getElementById('dockPlayLabel');
+const dockReset = document.getElementById('dockReset');
+const dockSpeed = document.getElementById('dockSpeed');
+const dockSpeedVal = document.getElementById('dockSpeedVal');
+
+dockPlay.addEventListener('click', () => {
+  idlePlaying = !idlePlaying;
+  dockPlay.classList.toggle('is-active', idlePlaying);
+  dockPlayLabel.textContent = idlePlaying ? 'Pause idle' : 'Play idle';
+  dockPlayIcon.innerHTML = idlePlaying
+    ? '<rect x="6" y="5" width="4" height="14"></rect><rect x="14" y="5" width="4" height="14"></rect>'
+    : '<polygon points="6 4 20 12 6 20 6 4"></polygon>';
+});
+
+dockReset.addEventListener('click', () => {
+  resetKnob();
+  segBend.fill(0);
+  segVel.fill(0);
+  resetPulse = 1;
+});
+
+dockSpeed.addEventListener('input', () => {
+  flexMult = parseFloat(dockSpeed.value);
+  dockSpeedVal.textContent = flexMult.toFixed(1) + '×';
+});
+
+joyKnob.addEventListener('pointerdown', (e) => {
+  dragging = true;
+  joyKnob.style.cursor = 'grabbing';
+  joyKnob.setPointerCapture(e.pointerId);
+});
+window.addEventListener('pointermove', (e) => {
+  if (!dragging) return;
+  setKnobFromClient(e.clientX, e.clientY);
+});
+window.addEventListener('pointerup', () => {
+  if (!dragging) return;
+  dragging = false;
+  joyKnob.style.cursor = 'grab';
+  resetKnob();
+});
+
+function animate(){
+  cx += (tx - cx) * 0.10;
+  cy += (ty - cy) * 0.10;
+  const t = performance.now() / 1000;
+
+  if (resetPulse > 0) resetPulse = Math.max(0, resetPulse - 0.045);
+
+  const dist = Math.min(1, Math.hypot(cx, cy));
+  const dirSign = cx < 0 ? -1 : 1;
+  const curlAmount = dist * 16 * dirSign * flexMult;
+
+  let angle = -90;
+  let px = BASE_X, py = BASE_Y;
+  const pts = [{x: px, y: py}];
+
+  for (let i = 0; i < NUM_SEGMENTS; i++) {
+    const f = i / (NUM_SEGMENTS - 1);
+    const curlGain = 0.2 + f * 0.6;
+
+    // ambient sway only plays while idle motion is on, and fades out
+    // the more the joystick is actively driving the arm
+    const idle = idlePlaying
+      ? Math.sin(t * 0.5 + i * 0.25) * 0.06 * f * (1 - dist) * flexMult
+      : 0;
+
+    // target bend this joint "wants" — same as before, but now it's a
+    // target rather than the applied value
+    const target = curlAmount * curlGain + idle;
+
+    // each joint is a lightly damped spring chasing its target, and also
+    // gets pulled toward the joint just above it in the chain. Lower
+    // stiffness + a little inherited motion from the previous segment is
+    // what produces the lagging, whip-like curl instead of every segment
+    // snapping to the same angle in lockstep.
+    const prevBend = i === 0 ? target : segBend[i - 1];
+    const chainPull = (prevBend - segBend[i]) * (0.10 + f * 0.10);
+    const springForce = (target - segBend[i]) * (0.16 - f * 0.06);
+    const damping = 0.78 - f * 0.08; // tip segments carry a touch more momentum
+
+    segVel[i] = (segVel[i] + springForce + chainPull) * damping;
+    segBend[i] += segVel[i];
+
+    // brief outward shake right after Reset, biggest near the tip
+    const shake = resetPulse > 0 ? Math.sin(t * 30 + i) * resetPulse * 1.4 * f : 0;
+
+    angle += segBend[i] + shake;
+    px += Math.cos(angle * Math.PI / 180) * SEG_LEN;
+    py += Math.sin(angle * Math.PI / 180) * SEG_LEN;
+    pts.push({x: px, y: py});
+  }
+
+  const left = [], right = [];
+  for (let i = 0; i < pts.length; i++) {
+    const w = (BASE_WIDTH + (TIP_WIDTH - BASE_WIDTH) * (i / (pts.length - 1))) / 2;
+    const prev = pts[Math.max(0, i - 1)];
+    const nextP = pts[Math.min(pts.length - 1, i + 1)];
+    const dx = nextP.x - prev.x, dy = nextP.y - prev.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len, ny = dx / len;
+    left.push({ x: pts[i].x + nx * w, y: pts[i].y + ny * w });
+    right.push({ x: pts[i].x - nx * w, y: pts[i].y - ny * w });
+  }
+
+  let d = `M ${left[0].x.toFixed(1)} ${left[0].y.toFixed(1)} `;
+  for (let i = 1; i < left.length; i++) d += `L ${left[i].x.toFixed(1)} ${left[i].y.toFixed(1)} `;
+  for (let i = right.length - 1; i >= 0; i--) d += `L ${right[i].x.toFixed(1)} ${right[i].y.toFixed(1)} `;
+  d += 'Z';
+  trunkPath.setAttribute('d', d);
+
+  ridgeMarks.forEach(({ el, index }) => {
+    const w = (BASE_WIDTH + (TIP_WIDTH - BASE_WIDTH) * (index / (pts.length - 1))) * 0.42;
+    const p = pts[index];
+    const dx = pts[index + 1].x - pts[index - 1].x;
+    const dy = pts[index + 1].y - pts[index - 1].y;
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len, ny = dx / len;
+    el.setAttribute('d', `M ${p.x - nx*w} ${p.y - ny*w} L ${p.x + nx*w} ${p.y + ny*w}`);
+  });
+
+  const tip = pts[pts.length - 1];
+  tipDot.setAttribute('cx', tip.x);
+  tipDot.setAttribute('cy', tip.y);
+
+  requestAnimationFrame(animate);
+}
+animate();
+</script>
+
+</body>
+</html>
